@@ -2,39 +2,46 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+//import static Main.EOF;
 
 public class Main {
     public static final String EOF = "EOF";
+
     public static void main(String[] args) {
-        List<String> buffer = new ArrayList<>();
+        List<String> buffer = new ArrayList<String>();
         MyProducer producer = new MyProducer(buffer, ThreadColour.ANSI_YELLOW);
         MyConsumer consumer1 = new MyConsumer(buffer, ThreadColour.ANSI_PURPLE);
         MyConsumer consumer2 = new MyConsumer(buffer, ThreadColour.ANSI_CYAN);
 
-        new Thread(producer).start();;
-        new Thread(consumer1).start();;
-        new Thread(consumer2).start();;
+        Thread thread1 = new Thread(producer);
+        Thread thread2 = new Thread(consumer1);
+        Thread thread3 = new Thread(consumer2);
+
+        thread1.start();
+        thread2.start();
+        // thread3.start();
     }
 }
 
-class MyProducer implements Runnable{
+class MyProducer implements  Runnable {
     private List<String> buffer;
-    private String colour;
+    private String color;
 
-    public MyProducer(List<String> buffer, String colour) {
+    public MyProducer(List<String> buffer, String color) {
         this.buffer = buffer;
-        this.colour = colour;
+        this.color = color;
     }
 
-    @Override
     public void run() {
         Random random = new Random();
-        String[] nums = {"1", "2", "3", "4", "5"};
+        String[] nums = { "1", "2", "3", "4", "5"};
 
-        for (String num: nums) {
+        for(String num: nums) {
             try {
-                System.out.println(colour + "Adding..." + num);
-                buffer.add(num);
+                System.out.println(color + "Adding..." + num);
+                synchronized (buffer) {
+                    buffer.add(num);
+                }
 
                 Thread.sleep(random.nextInt(1000));
             } catch(InterruptedException e) {
@@ -42,52 +49,35 @@ class MyProducer implements Runnable{
             }
         }
 
-        System.out.println(colour + "Adding EOF and exiting...");
-        buffer.add("EOF");
-    }
-}
-
-
-class MyConsumer implements Runnable {
-    private List<String> buffer;
-    private String colour;
-
-    public MyConsumer(List<String> buffer, String colour) {
-        this.buffer = buffer;
-        this.colour = colour;
-    }
-
-    @Override
-    public void run() {
-        while(true) {
-            if (buffer.isEmpty()) {
-                continue;
-            }
-
-            if (buffer.get(0).equals("EOF")) {
-                System.out.println(colour + "Exiting");
-                break;
-            } else {
-                System.out.println(colour + "Removed " + buffer.remove(0));
-            }
+        System.out.println(color + "Adding EOF and exiting....");
+        synchronized (buffer) {
+            buffer.add("EOF");
         }
     }
 }
 
+class MyConsumer implements Runnable {
+    private List<String> buffer;
+    private String color;
 
+    public MyConsumer(List<String> buffer, String color) {
+        this.buffer = buffer;
+        this.color = color;
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    public void run() {
+        while(true) {
+            synchronized (buffer) {
+                if (buffer.isEmpty()) {
+                    continue;
+                }
+                if (buffer.get(0).equals("EOF")) {
+                    System.out.println(color + "Exiting");
+                    break;
+                } else {
+                    System.out.println(color + "Removed " + buffer.remove(0));
+                }
+            }
+        }
+    }
+}
